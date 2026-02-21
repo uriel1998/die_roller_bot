@@ -24,6 +24,85 @@ class BotInvokeListener implements IEventListener {
 	public const PARTICIPANT_TYPE_OWNER = 1;
 	public const PARTICIPANT_TYPE_MODERATOR = 2;
 
+	private const TAROT_JOIN_PHRASES = [
+		'is about',
+		'pertains to',
+		'refers to',
+		'is related to',
+		'is regarding',
+		'relates to',
+	];
+
+	private const TAROT_LIGHT_PHRASES = [
+		'considering',
+		'exploring',
+		'looking into',
+		'contemplating',
+		'deliberating on',
+		'reflecting on',
+	];
+
+	private const TAROT_SHADOW_PHRASES = [
+		'being wary of',
+		'avoiding',
+		'steering clear of',
+		'forgoing',
+		'resisting',
+		'being suspicious of',
+	];
+
+	private const TAROT_NARRATIVE_0 = [
+		'The influence that is affecting you or the matter of inquiry generally',
+		'The nature of the obstacle in front of you',
+		'The aim or ideal of the matter',
+		'The foundation or basis of the subject that has already happened',
+		'The influence that has just passed or has passed away',
+		'The influence that is coming into action and will operating in the near future',
+		'The position or attitude you have in the circumstances',
+		'The environment or situation that have an effect on the matter',
+		'The hopes or fears of the matter',
+		'The culmination which is brought about by the influence shown by the other cards',
+	];
+
+	private const TAROT_NARRATIVE_1 = [
+		'The heart of the issue or influence affecting the matter of inquiry',
+		'The obstacle that stands in the way',
+		'Either the goal or the best potential result in the current situation',
+		'The foundation of the issue which has passed into reality',
+		'The past or influence that is departing',
+		'The future or influence that is approaching',
+		'You, either as you are, could be or are presenting yourself to be',
+		'Your house or environment',
+		'Your hopes and fears',
+		'The ultimate result or cumulation about the influences from the other cards in the divination',
+	];
+
+	private const TAROT_NARRATIVE_2 = [
+		'Your situation',
+		'An influence now coming into play',
+		'Your hope or goal',
+		'The issue at the root of your question',
+		'An influence that will soon have an impact',
+		'Your history',
+		'The obstacle',
+		'The possible course of action',
+		'The current future if you do nothing',
+		'The possible future',
+	];
+
+	private const TAROT_NARRATIVE_3 = [
+		'To resolve your situation',
+		'To help clear the obstacle',
+		'To help achieve your hope or goal',
+		'To get at the root of your question',
+		'To help see an influence that will soon have an impact',
+		'To help see how you have gotten to this point',
+		'To help interpret your feelings about the situation',
+		'To help you understand the moods of those closest to you',
+		'To help understand your fear',
+		'To help see the outcome',
+	];
+
 	public function __construct(
 		protected LoggerInterface $logger,
 		protected CommandMapper $mapper,
@@ -212,6 +291,17 @@ class BotInvokeListener implements IEventListener {
 			return;
 		}
 
+		if ($command === '!tarot') {
+			$number = random_int(1, 156);
+			$reading = $this->getTarotReading($number);
+			if ($reading === null) {
+				$event->addReaction('👎');
+				return;
+			}
+			$event->addAnswer($reading);
+			return;
+		}
+
 		try {
 			$object = $this->mapper->getCommandForConversation($chatMessage['target']['id'], $command);
 		} catch (DoesNotExistException) {
@@ -263,6 +353,104 @@ class BotInvokeListener implements IEventListener {
 				$event->addAnswer($answer);
 			}
 		}
+	}
+
+	protected function getTarotReading(int $number): ?string {
+		$cardData = $this->getTarotCardData($number);
+		if ($cardData === null) {
+			return null;
+		}
+
+		[$cardName, $orientation] = $cardData;
+
+		$meaning = $this->getTarotMeaning($cardName, $orientation);
+		if ($meaning === null) {
+			return null;
+		}
+
+		$position = 0;
+		$preface = $this->getTarotNarrative($position);
+		$joiner = self::TAROT_JOIN_PHRASES[random_int(0, count(self::TAROT_JOIN_PHRASES) - 1)];
+		if ($orientation === 'shadow') {
+			$join2 = self::TAROT_SHADOW_PHRASES[random_int(0, count(self::TAROT_SHADOW_PHRASES) - 1)];
+		} else {
+			$join2 = self::TAROT_LIGHT_PHRASES[random_int(0, count(self::TAROT_LIGHT_PHRASES) - 1)];
+		}
+
+		return '#' . $cardName . ' in ' . $orientation . ': ' . $preface . ' ' . $joiner . ' ' . $join2 . ' ' . $meaning;
+	}
+
+	protected function getTarotNarrative(int $position): string {
+		$chooser = random_int(0, 3);
+		$source = match ($chooser) {
+			0 => self::TAROT_NARRATIVE_0,
+			1 => self::TAROT_NARRATIVE_1,
+			2 => self::TAROT_NARRATIVE_2,
+			default => self::TAROT_NARRATIVE_3,
+		};
+
+		if (!isset($source[$position])) {
+			return self::TAROT_NARRATIVE_0[0];
+		}
+
+		return $source[$position];
+	}
+
+	protected function getTarotCardData(int $number): ?array {
+		$cardsPath = dirname(__DIR__) . '/Tarot/number_cards.dat';
+		if (!is_readable($cardsPath)) {
+			return null;
+		}
+
+		foreach (file($cardsPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+			if (!str_starts_with($line, (string)$number . '=')) {
+				continue;
+			}
+
+			$parts = explode('=', $line, 3);
+			if (count($parts) < 3) {
+				return null;
+			}
+
+			$cardName = trim($parts[1]);
+			$orientation = trim($parts[2]);
+
+			if ($cardName === '' || $orientation === '') {
+				return null;
+			}
+
+			return [$cardName, $orientation];
+		}
+
+		return null;
+	}
+
+	protected function getTarotMeaning(string $cardName, string $orientation): ?string {
+		$interpretationsPath = dirname(__DIR__) . '/Tarot/interpretations.json';
+		if (!is_readable($interpretationsPath)) {
+			return null;
+		}
+
+		$data = json_decode((string)file_get_contents($interpretationsPath), true);
+		if (!is_array($data) || !isset($data['tarot_interpretations'])) {
+			return null;
+		}
+
+		foreach ($data['tarot_interpretations'] as $entry) {
+			if (!isset($entry['name']) || $entry['name'] !== $cardName) {
+				continue;
+			}
+
+			$meanings = $entry['meanings'][$orientation] ?? null;
+			if (!is_array($meanings) || $meanings === []) {
+				return null;
+			}
+
+			$index = random_int(0, count($meanings) - 1);
+			return strtolower((string)$meanings[$index]);
+		}
+
+		return null;
 	}
 
 	protected function highlightParameters(string $message): string {
