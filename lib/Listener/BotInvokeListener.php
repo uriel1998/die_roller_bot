@@ -163,6 +163,55 @@ class BotInvokeListener implements IEventListener {
 			return;
 		}
 
+		if ($command === '!roll') {
+			$parsedMessage = trim($message);
+			if (!preg_match('/^\s*(\d+)\s*[dD]\s*(\d+)(?:\s*([+-])\s*(\d+))?\s*$/', $parsedMessage, $matches)) {
+				$event->addReaction('👎');
+				return;
+			}
+
+			$diceCount = (int)$matches[1];
+			$diceSides = (int)$matches[2];
+
+			if ($diceCount <= 0 || $diceSides <= 0) {
+				$event->addReaction('👎');
+				return;
+			}
+
+			$rolls = [];
+			for ($i = 0; $i < $diceCount; $i++) {
+				$rolls[] = random_int(1, $diceSides);
+			}
+
+			$sum = array_sum($rolls);
+			$total = $sum;
+			$modifierValue = null;
+
+			if (isset($matches[3]) && $matches[3] !== '') {
+				$modifierValue = (int)$matches[4];
+				if ($matches[3] === '+') {
+					$total += $modifierValue;
+				} else {
+					$total -= $modifierValue;
+				}
+			}
+
+			$answer = 'Rolled ' . implode(', ', $rolls);
+			if ($modifierValue !== null) {
+				$answer .= ' ' . $matches[3] . ' (' . $modifierValue . ')';
+			}
+			$answer .= "\nFor a total of " . $total;
+
+			if (isset($chatMessage['object']['inReplyTo']['actor']['id'])
+				&& !str_starts_with($chatMessage['object']['inReplyTo']['actor']['id'], 'bot/')) {
+				$answer = $this->getSender($chatMessage['object']['inReplyTo']['actor']) . ' ' . $answer;
+				$event->addAnswer($answer, (int)$chatMessage['object']['inReplyTo']['object']['id']);
+			} else {
+				$event->addAnswer($answer);
+			}
+			return;
+		}
+
 		try {
 			$object = $this->mapper->getCommandForConversation($chatMessage['target']['id'], $command);
 		} catch (DoesNotExistException) {
