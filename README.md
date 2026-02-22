@@ -1,9 +1,74 @@
-# Command Bot for Nextcloud Talk
+# Command Bot for Nextcloud Talk - FORK
 
-A simple "text in, text out" bot to help with repeating questions and tasks.
+A simple bot to help with repeating questions, tasks, and a bit of fun.  This fork has a die rolling and tarot card drawing function as well.
 
 ## 💬 Default commands for all participants
 - **!command** - List all commands
+- **!roll** - Roll dice in standard notation
+- **!tarot** - Draw a tarot card with a narrative interpretation
+- **!ltarot** - Draw a tarot card with a longer, detailed interpretation
+
+## 🎲 Dice Rolling
+
+Roll any combination of dice using standard RPG notation:
+
+```
+!roll 2d6
+!roll 1d20+5
+!roll 4d8-2
+```
+
+Returns each individual die result and the final total.
+
+### ⚔️ Advantage and Disadvantage
+
+Add `adv` or `dis` to roll twice and automatically use the higher or lower result:
+
+```
+!roll 1d20 adv
+!roll 1d20 dis
+!roll 2d6+3 adv
+```
+
+Both rolls are shown, followed by the final result:
+
+```
+Roll 1: Rolled 12 + (5)
+For a total of 17
+Roll 2: Rolled 4 + (5)
+For a total of 9
+FINAL ROLL: 17
+```
+
+## 🔮 Tarot
+
+### !tarot
+
+Draws a random tarot card (upright or reversed) and returns a short narrative interpretation. The response weaves together the card, its orientation, and a randomly chosen meaning into a single sentence:
+
+```
+!tarot
+```
+
+Example response:
+```
+#The Moon in shadow: Your hopes and fears is about being wary of self-deception and avoidance
+```
+
+### 🃏 !ltarot
+
+Draws a random tarot card and returns the full general interpretation from an extended tarot guide, with no additional framing or narrative — just the plain reading:
+
+```
+!ltarot
+```
+
+Cards drawn 1–78 are upright (light) interpretations; 79–156 are reversed (shadow) interpretations.
+
+Example response:
+```
+The Moon reversed can indicate that you are getting the feeling that something is not right but are repressing those feelings or being untruthful with yourself about a situation...
+```
 
 ## ⭐ Commands for moderators only
 - **!set** - Create or update a command
