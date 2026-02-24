@@ -229,6 +229,15 @@ class BotInvokeListener implements IEventListener
             }
             $response = "### 💬 Available commands" . "\n";
             $response .= "- **!command** - List all commands" . "\n";
+            $response .=
+                "- **!shuffle** - Shuffle a standard 52-card playing deck for this conversation" .
+                "\n";
+            $response .=
+                "- **!draw** - Draw the top card from the deck; automatically shuffles a fresh deck if none exists or all cards have been drawn" .
+                "\n";
+            $response .=
+                "- **!remain** - Show how many cards are left in the current deck" .
+                "\n";
             foreach ($commands as $command) {
                 $response .= "- **" . $command->getCommand() . "** - ";
                 $response .= $this->highlightParameters($command->getMessage());
@@ -409,6 +418,104 @@ class BotInvokeListener implements IEventListener
             return;
         }
 
+        if ($command === "!shuffle") {
+            $token = $chatMessage["target"]["id"];
+            $cards = $this->shuffleAndStoreDeck($token);
+            if ($cards === null) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            $event->addAnswer(
+                "🃏 The deck has been shuffled. " .
+                    count($cards) .
+                    " cards remain.",
+            );
+            return;
+        }
+
+        if ($command === "!draw") {
+            $token = $chatMessage["target"]["id"];
+            $autoShuffled = false;
+
+            try {
+                $deck = $this->mapper->getCommandForConversation(
+                    $token,
+                    "!deck",
+                );
+                $cards = json_decode($deck->getMessage(), true);
+                if (!is_array($cards) || count($cards) === 0) {
+                    $cards = $this->shuffleAndStoreDeck($token);
+                    $autoShuffled = true;
+                }
+            } catch (DoesNotExistException) {
+                $cards = $this->shuffleAndStoreDeck($token);
+                $autoShuffled = true;
+            }
+
+            if ($cards === null) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            $drawn = array_shift($cards);
+
+            // Re-fetch the entity only when shuffleAndStoreDeck created or
+            // replaced it; otherwise $deck is already the correct entity.
+            if ($autoShuffled || !isset($deck)) {
+                try {
+                    $deck = $this->mapper->getCommandForConversation(
+                        $token,
+                        "!deck",
+                    );
+                } catch (DoesNotExistException) {
+                    $deck = new Command();
+                    $deck->setToken($token);
+                    $deck->setCommand("!deck");
+                }
+            }
+            $deck->setMessage(json_encode($cards));
+            if ($deck->getId() !== null) {
+                $this->mapper->update($deck);
+            } else {
+                $this->mapper->insert($deck);
+            }
+
+            $answer = "";
+            if ($autoShuffled) {
+                $answer .=
+                    "🃏 The deck has been shuffled. Drawing first card...\n";
+            }
+            $answer .= "🃏 " . $drawn;
+            $event->addAnswer($answer);
+            return;
+        }
+
+        if ($command === "!remain") {
+            $token = $chatMessage["target"]["id"];
+            try {
+                $deck = $this->mapper->getCommandForConversation(
+                    $token,
+                    "!deck",
+                );
+                $cards = json_decode($deck->getMessage(), true);
+                $count = is_array($cards) ? count($cards) : 0;
+            } catch (DoesNotExistException) {
+                $count = 0;
+            }
+
+            $event->addAnswer(
+                "🃏 " .
+                    $count .
+                    " card" .
+                    ($count === 1 ? "" : "s") .
+                    " remain" .
+                    ($count === 1 ? "s" : "") .
+                    " in the deck.",
+            );
+            return;
+        }
+
         try {
             $object = $this->mapper->getCommandForConversation(
                 $chatMessage["target"]["id"],
@@ -577,6 +684,48 @@ class BotInvokeListener implements IEventListener
         }
 
         return null;
+    }
+
+    /**
+     * Reads playing_cards.dat, shuffles all 52 card values, persists the
+     * result to the database for the given conversation token, and returns
+     * the shuffled array. Returns null if the data file cannot be read.
+     *
+     * @return list<string>|null
+     */
+    protected function shuffleAndStoreDeck(string $token): ?array
+    {
+        $datFile = __DIR__ . "/../Tarot/playing_cards.dat";
+        $lines = file($datFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) {
+            return null;
+        }
+
+        $cards = [];
+        foreach ($lines as $line) {
+            $pos = strpos($line, "=");
+            if ($pos !== false) {
+                $cards[] = substr($line, $pos + 1);
+            }
+        }
+
+        shuffle($cards);
+
+        try {
+            $deck = $this->mapper->getCommandForConversation($token, "!deck");
+        } catch (DoesNotExistException) {
+            $deck = new Command();
+            $deck->setToken($token);
+            $deck->setCommand("!deck");
+        }
+        $deck->setMessage(json_encode($cards));
+        if ($deck->getId() !== null) {
+            $this->mapper->update($deck);
+        } else {
+            $this->mapper->insert($deck);
+        }
+
+        return $cards;
     }
 
     protected function getTarotCardData(int $number): ?array
