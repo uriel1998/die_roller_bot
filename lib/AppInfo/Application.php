@@ -6,26 +6,31 @@ declare(strict_types=1);
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-namespace OCA\CommandBot\AppInfo;
+namespace OCA\C0mmandBot\AppInfo;
 
-use OCA\CommandBot\Listener\BotInvokeListener;
+use OCA\C0mmandBot\Listener\BotInvokeListener;
 use OCA\Talk\Events\BotInvokeEvent;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 
-class Application extends App implements IBootstrap {
-	public const APP_ID = 'command_bot';
+class Application extends App implements IBootstrap
+{
+    public const APP_ID = "c0mmand_bot";
 
-	public function __construct() {
-		parent::__construct(self::APP_ID);
-	}
+    public function __construct()
+    {
+        parent::__construct(self::APP_ID);
+    }
 
-	public function register(IRegistrationContext $context): void {
-		$context->registerEventListener(BotInvokeEvent::class, BotInvokeListener::class);
-	}
+    public function register(IRegistrationContext $context): void
+    {
+        $context->registerEventListener(
+            BotInvokeEvent::class,
+            BotInvokeListener::class,
+        );
+    }
 
-	public function boot(IBootContext $context): void {
-	}
+    public function boot(IBootContext $context): void {}
 }

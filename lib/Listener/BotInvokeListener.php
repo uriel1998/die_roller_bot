@@ -6,11 +6,11 @@ declare(strict_types=1);
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-namespace OCA\CommandBot\Listener;
+namespace OCA\C0mmandBot\Listener;
 
-use OCA\CommandBot\AppInfo\Application;
-use OCA\CommandBot\Model\Command;
-use OCA\CommandBot\Model\CommandMapper;
+use OCA\C0mmandBot\AppInfo\Application;
+use OCA\C0mmandBot\Model\Command;
+use OCA\C0mmandBot\Model\CommandMapper;
 use OCA\Talk\Events\BotInvokeEvent;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\EventDispatcher\Event;

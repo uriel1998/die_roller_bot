@@ -1,6 +1,75 @@
-# Command Bot for Nextcloud Talk - FORK
+# C0mmandBot for Nextcloud Talk - FORK
 
 A simple bot to help with repeating questions, tasks, and a bit of fun.  This fork has a die rolling and tarot card drawing function as well.
+
+## 🐳 Installation (Nextcloud AIO)
+
+This bot is a Nextcloud app-based bot — it runs inside the PHP process and self-registers with Talk automatically when enabled. No external server or webhook configuration is needed.
+
+**Requirements:** Nextcloud 31–33 with the Talk app installed and enabled.
+
+### 1. Check your Nextcloud version
+
+```
+docker exec --user www-data nextcloud-aio-nextcloud php occ status
+```
+
+### 2. Copy the app into the container
+
+The destination folder name must be `c0mmand_bot` to match the app ID.
+
+```
+docker cp /path/to/die_roller_bot \
+  nextcloud-aio-nextcloud:/var/www/html/custom_apps/c0mmand_bot
+```
+
+### 3. Fix file ownership
+
+```
+docker exec --user root nextcloud-aio-nextcloud \
+  chown -R www-data:www-data /var/www/html/custom_apps/c0mmand_bot
+```
+
+### 4. Enable the app
+
+This triggers the install repair step, which generates a shared secret and registers the bot with Talk automatically.
+
+```
+docker exec --user www-data nextcloud-aio-nextcloud \
+  php occ app:enable c0mmand_bot
+```
+
+### 5. Verify the bot is registered
+
+Note the bot's **ID** from the output — you'll need it in the next step.
+
+```
+docker exec --user www-data nextcloud-aio-nextcloud \
+  php occ talk:bot:list
+```
+
+You should see an entry named **C0mmandBot** with the URL `nextcloudapp://c0mmand_bot`.
+
+### 6. Add the bot to a conversation
+
+Bots are registered server-wide but must be added to each conversation individually. The conversation token is the short alphanumeric string visible in the Talk URL when you open a conversation.
+
+```
+docker exec --user www-data nextcloud-aio-nextcloud \
+  php occ talk:bot:setup <bot-id> <conversation-token>
+```
+
+Alternatively, a conversation moderator can do this through the Talk UI: open the conversation → **⋮ menu → Conversation settings → Bots**, then toggle C0mmandBot on.
+
+### 7. Test it
+
+Send `!command` in the conversation — the bot should reply with its list of available commands.
+
+> **Notes:**
+> - The bot and its secret persist in Nextcloud's app config and database across container restarts.
+> - After updating app files, run `php occ upgrade` to apply any new database migrations.
+> - To remove from a conversation: toggle it off in the Talk UI, or run `php occ talk:bot:unsetup <bot-id> <conversation-token>`.
+> - To uninstall entirely: `php occ app:disable c0mmand_bot`.
 
 ## 💬 Default commands for all participants
 - **!command** - List all commands
@@ -102,9 +171,9 @@ Simply post each command you'd like to add as a new message into your chat.
 
 ```
 !set !english The prefered language is English. This allows more people to understand discussions and participate in them.
-!set !cb Checkout the Nextcloud Talk **Command bot**! Get it now from the [Nextcloud App store](https://apps.nextcloud.com/apps/command_bot) and checkout the documentation in the [Readme](https://github.com/nextcloud/command_bot)!
+!set !cb Checkout the Nextcloud Talk **C0mmandBot**! Get it now from the [Nextcloud App store](https://apps.nextcloud.com/apps/c0mmand_bot) and checkout the documentation in the [Readme](https://github.com/nextcloud/c0mmand_bot)!
 !set !userdocs Have a read through the [Nextcloud Talk User documentation](https://docs.nextcloud.com/server/latest/user_manual/en/talk/index.html) to learn more about most of the features.
-!set !issue Please raise an issue in the GitHub repository: https://github.com/nextcloud/command_bot/issues/new/choose
+!set !issue Please raise an issue in the GitHub repository: https://github.com/nextcloud/c0mmand_bot/issues/new/choose
 ```
 
 ### 🗜️ Shortcutting

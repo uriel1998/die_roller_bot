@@ -6,7 +6,7 @@ declare(strict_types=1);
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
-namespace OCA\CommandBot\Model;
+namespace OCA\C0mmandBot\Model;
 
 use OCP\AppFramework\Db\Entity;
 use OCP\DB\Types;
@@ -21,16 +21,18 @@ use OCP\DB\Types;
  * @method void setCount(int $count)
  * @method int getCount()
  */
-class Command extends Entity {
-	protected string $token = '';
-	protected string $command = '';
-	protected string $message = '';
-	protected int $count = 0;
+class Command extends Entity
+{
+    protected string $token = "";
+    protected string $command = "";
+    protected string $message = "";
+    protected int $count = 0;
 
-	public function __construct() {
-		$this->addType('token', Types::STRING);
-		$this->addType('command', Types::STRING);
-		$this->addType('message', Types::TEXT);
-		$this->addType('count', Types::BIGINT);
-	}
+    public function __construct()
+    {
+        $this->addType("token", Types::STRING);
+        $this->addType("command", Types::STRING);
+        $this->addType("message", Types::TEXT);
+        $this->addType("count", Types::BIGINT);
+    }
 }
