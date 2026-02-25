@@ -245,6 +245,15 @@ class BotInvokeListener implements IEventListener
             $response .=
                 "- **!spells** - Look up a spell by name or partial name (e.g. `!spells Fireball`)" .
                 "\n";
+            $response .=
+                "- **!class** - Look up a class by name or partial name (e.g. `!class Druid`)" .
+                "\n";
+            $response .=
+                "- **!monsters** - Look up a monster by name or partial name (e.g. `!monsters Beholder`)" .
+                "\n";
+            $response .=
+                "- **!magicitems** - Look up a magic item by name or partial name (e.g. `!magicitems Bag of Holding`)" .
+                "\n";
             foreach ($commands as $command) {
                 $response .= "- **" . $command->getCommand() . "** - ";
                 $response .= $this->highlightParameters($command->getMessage());
@@ -515,99 +524,66 @@ class BotInvokeListener implements IEventListener
         }
 
         if ($command === "!spells") {
-            $spellDir = dirname(__DIR__) . "/SRD/spells";
-            $arg = trim($message);
-
-            // No argument
-            if ($arg === "") {
-                $event->addAnswer(
-                    "🧙Please give at least the first letter of the spell.",
-                );
-                return;
-            }
-
-            // Build list of all spell filenames (without extension)
-            $files = glob($spellDir . "/*.txt");
-            if ($files === false) {
+            $result = $this->lookupFromDirectory(
+                dirname(__DIR__) . "/SRD/spells",
+                "🧙",
+                "spell",
+                "spells",
+                trim($message),
+            );
+            if ($result === null) {
                 $event->addReaction("👎");
-                return;
+            } else {
+                $event->addAnswer($result);
             }
+            return;
+        }
 
-            $spellNames = array_map(
-                static fn(string $f): string => pathinfo($f, PATHINFO_FILENAME),
-                $files,
+        if ($command === "!class") {
+            $result = $this->lookupFromDirectory(
+                dirname(__DIR__) . "/SRD/class",
+                "⚔️",
+                "class",
+                "classes",
+                trim($message),
             );
-
-            // 1. Exact case-insensitive match
-            foreach ($spellNames as $name) {
-                if (strcasecmp($name, $arg) === 0) {
-                    $contents = file_get_contents(
-                        $spellDir . "/" . $name . ".txt",
-                    );
-                    if ($contents === false) {
-                        $event->addReaction("👎");
-                        return;
-                    }
-                    $event->addAnswer($contents);
-                    return;
-                }
+            if ($result === null) {
+                $event->addReaction("👎");
+            } else {
+                $event->addAnswer($result);
             }
+            return;
+        }
 
-            // 2. Single a-z character — return filenames beginning with that letter
-            if (preg_match('/^[a-z]$/i', $arg)) {
-                $filtered = array_values(
-                    array_filter(
-                        $spellNames,
-                        static fn(string $n): bool => stripos($n, $arg) === 0,
-                    ),
-                );
-                sort($filtered);
-                $response = implode(
-                    "\n",
-                    array_map(
-                        static fn(string $n): string => "- " . $n,
-                        $filtered,
-                    ),
-                );
-                $event->addAnswer($response);
-                return;
-            }
-
-            // 3. Partial case-insensitive match
-            $matches = array_filter(
-                $spellNames,
-                static fn(string $n): bool => stripos($n, $arg) !== false,
+        if ($command === "!monsters") {
+            $result = $this->lookupFromDirectory(
+                dirname(__DIR__) . "/SRD/monsters",
+                "🧌",
+                "monster",
+                "monsters",
+                trim($message),
             );
-            $matches = array_values($matches);
-
-            if (count($matches) === 1) {
-                $contents = file_get_contents(
-                    $spellDir . "/" . $matches[0] . ".txt",
-                );
-                if ($contents === false) {
-                    $event->addReaction("👎");
-                    return;
-                }
-                $event->addAnswer($contents);
-                return;
+            if ($result === null) {
+                $event->addReaction("👎");
+            } else {
+                $event->addAnswer($result);
             }
+            return;
+        }
 
-            if (count($matches) > 1) {
-                sort($matches);
-                $response = "🧙Choose from these spells:\n";
-                $response .= implode(
-                    "\n",
-                    array_map(
-                        static fn(string $n): string => "- " . $n,
-                        $matches,
-                    ),
-                );
-                $event->addAnswer($response);
-                return;
+        if ($command === "!magicitems") {
+            $result = $this->lookupFromDirectory(
+                dirname(__DIR__) . "/SRD/magic_items",
+                "🪄",
+                "magic item",
+                "magic items",
+                trim($message),
+            );
+            if ($result === null) {
+                $event->addReaction("👎");
+            } else {
+                $event->addAnswer($result);
             }
-
-            // No match
-            $event->addReaction("👎");
             return;
         }
 
@@ -772,6 +748,94 @@ class BotInvokeListener implements IEventListener
                 $event->addAnswer($answer);
             }
         }
+    }
+
+    /**
+     * Generic directory-based lookup used by !class, !monsters, !magicitems, etc.
+     *
+     * @param string $dir       Absolute path to the directory of .txt files
+     * @param string $icon      Emoji prefix for prompt/list responses
+     * @param string $itemLabel Singular label used in the no-argument prompt (e.g. "monster")
+     * @param string $itemsLabel Plural label used in the multiple-match response (e.g. "monsters")
+     * @param string $arg       The trimmed argument the user supplied (empty string = no arg)
+     * @return string|null      The answer string, or null when a 👎 reaction should be sent instead
+     */
+    protected function lookupFromDirectory(
+        string $dir,
+        string $icon,
+        string $itemLabel,
+        string $itemsLabel,
+        string $arg,
+    ): ?string {
+        // No argument
+        if ($arg === "") {
+            return $icon .
+                "Please give at least the first letter of the " .
+                $itemLabel .
+                ".";
+        }
+
+        $files = glob($dir . "/*.txt");
+        if ($files === false) {
+            return null;
+        }
+
+        $names = array_map(
+            static fn(string $f): string => pathinfo($f, PATHINFO_FILENAME),
+            $files,
+        );
+
+        // 1. Exact case-insensitive match
+        foreach ($names as $name) {
+            if (strcasecmp($name, $arg) === 0) {
+                $contents = file_get_contents($dir . "/" . $name . ".txt");
+                return $contents !== false ? $contents : null;
+            }
+        }
+
+        // 2. Single a-z character — return filenames beginning with that letter
+        if (preg_match('/^[a-z]$/i', $arg)) {
+            $filtered = array_values(
+                array_filter(
+                    $names,
+                    static fn(string $n): bool => stripos($n, $arg) === 0,
+                ),
+            );
+            sort($filtered);
+            if (empty($filtered)) {
+                return null;
+            }
+            return implode(
+                "\n",
+                array_map(static fn(string $n): string => "- " . $n, $filtered),
+            );
+        }
+
+        // 3. Partial case-insensitive match
+        $matches = array_values(
+            array_filter(
+                $names,
+                static fn(string $n): bool => stripos($n, $arg) !== false,
+            ),
+        );
+
+        if (count($matches) === 1) {
+            $contents = file_get_contents($dir . "/" . $matches[0] . ".txt");
+            return $contents !== false ? $contents : null;
+        }
+
+        if (count($matches) > 1) {
+            sort($matches);
+            $response = $icon . "Choose from these " . $itemsLabel . ":\n";
+            $response .= implode(
+                "\n",
+                array_map(static fn(string $n): string => "- " . $n, $matches),
+            );
+            return $response;
+        }
+
+        // No match
+        return null;
     }
 
     protected function getTarotReading(int $number): ?string

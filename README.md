@@ -79,6 +79,9 @@ Send `!command` in the conversation — the bot should reply with its list of av
 - **!fortune** - Display a random fortune
 - **!spelllist** - List available SRD spell lists, or show the spell list for a given class
 - **!spells** - Look up an SRD spell by name or partial name
+- **!class** - Look up a class description by name or partial name
+- **!monsters** - Look up a monster by name or partial name
+- **!magicitems** - Look up a magic item by name or partial name
 
 ## 🎲 Dice Rolling
 
@@ -233,6 +236,133 @@ Spell data comes from the [Systems Reference Document (SRD)](https://dnd.wizards
 - **New spell list:** add a `.txt` file to `lib/SRD/spell_lists/`. The filename (without extension) is the class name shown in `!spelllist`.
 
 No code changes or restarts are needed — the bot reads the directory contents at runtime.
+
+## ⚔️ Classes
+
+### !class
+
+Looks up a class description from the SRD.
+
+**No argument** — prompts for input:
+```
+!class
+```
+```
+⚔️Please give at least the first letter of the class.
+```
+
+**Single letter** — returns all classes beginning with that letter:
+```
+!class b
+```
+
+**Exact or unique partial match** — returns the full class description:
+```
+!class Druid
+!class dru
+```
+
+**Ambiguous partial match** — lists all matching class names:
+```
+!class r
+```
+```
+⚔️Choose from these classes:
+- Ranger
+- Rogue
+```
+
+**No match** — reacts with 👎.
+
+### 📚 Adding classes
+
+Class data comes from the [Systems Reference Document (SRD)](https://dnd.wizards.com/resources/systems-reference-document). To add a new class, add a `.txt` file to `lib/SRD/class/`. The filename (without extension) is the class name used for lookups. No code changes or restarts are needed.
+
+## 🧌 Monsters
+
+### !monsters
+
+Looks up a monster stat block or description from the SRD.
+
+**No argument** — prompts for input:
+```
+!monsters
+```
+```
+🧌Please give at least the first letter of the monster.
+```
+
+**Single letter** — returns all monsters beginning with that letter:
+```
+!monsters d
+```
+
+**Exact or unique partial match** — returns the full monster entry:
+```
+!monsters Beholder
+!monsters beh
+```
+
+**Ambiguous partial match** — lists all matching monster names:
+```
+!monsters dragon
+```
+```
+🧌Choose from these monsters:
+- Black Dragon
+- Blue Dragon
+- Brass Dragon
+- ...
+```
+
+**No match** — reacts with 👎.
+
+### 📚 Adding monsters
+
+Monster data comes from the [Systems Reference Document (SRD)](https://dnd.wizards.com/resources/systems-reference-document). To add a new monster, add a `.txt` file to `lib/SRD/monsters/`. The filename (without extension) is the monster name used for lookups. No code changes or restarts are needed.
+
+## 🪄 Magic Items
+
+### !magicitems
+
+Looks up a magic item description from the SRD.
+
+**No argument** — prompts for input:
+```
+!magicitems
+```
+```
+🪄Please give at least the first letter of the magic item.
+```
+
+**Single letter** — returns all magic items beginning with that letter:
+```
+!magicitems b
+```
+
+**Exact or unique partial match** — returns the full item description:
+```
+!magicitems Bag of Holding
+!magicitems bag of hol
+```
+
+**Ambiguous partial match** — lists all matching item names:
+```
+!magicitems bag
+```
+```
+🪄Choose from these magic items:
+- Bag Of Beans
+- Bag Of Devouring
+- Bag Of Holding
+- Bag Of Tricks
+```
+
+**No match** — reacts with 👎.
+
+### 📚 Adding magic items
+
+Magic item data comes from the [Systems Reference Document (SRD)](https://dnd.wizards.com/resources/systems-reference-document). To add a new magic item, add a `.txt` file to `lib/SRD/magic_items/`. The filename (without extension) is the item name used for lookups. No code changes or restarts are needed.
 
 ## ⭐ Commands for moderators only
 - **!set** - Create or update a command
