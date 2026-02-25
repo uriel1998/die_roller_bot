@@ -238,6 +238,7 @@ class BotInvokeListener implements IEventListener
             $response .=
                 "- **!remain** - Show how many cards are left in the current deck" .
                 "\n";
+            $response .= "- **!fortune** - Display a random fortune" . "\n";
             foreach ($commands as $command) {
                 $response .= "- **" . $command->getCommand() . "** - ";
                 $response .= $this->highlightParameters($command->getMessage());
@@ -415,6 +416,35 @@ class BotInvokeListener implements IEventListener
                 return;
             }
             $event->addAnswer($reading);
+            return;
+        }
+
+        if ($command === "!fortune") {
+            $fortunesPath = dirname(__DIR__) . "/Tarot/fortunes";
+            if (!is_readable($fortunesPath)) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            $lines = file($fortunesPath, FILE_IGNORE_NEW_LINES);
+            if ($lines === false) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            $fortunes = array_values(
+                array_filter($lines, static function (string $line): bool {
+                    return !str_starts_with($line, "%") && $line !== "";
+                }),
+            );
+
+            if (empty($fortunes)) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            $fortune = $fortunes[random_int(0, count($fortunes) - 1)];
+            $event->addAnswer("🔮 " . $fortune . "\n");
             return;
         }
 
