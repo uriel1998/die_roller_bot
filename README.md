@@ -84,6 +84,7 @@ Send `!command` in the conversation — the bot should reply with its list of av
 - **!magicitems** - Look up a magic item by name or partial name
 - **!nimble** - Look up a Nimble rule by name or partial name
 - **!rules** - Look up an SRD rule by name or partial name
+- **!!** - Browse custom content collections
 
 ## 🎲 Dice Rolling
 
@@ -437,6 +438,58 @@ Looks up a rule entry from the SRD.
 ### 📚 Adding rules
 
 Rule data comes from the [Systems Reference Document (SRD)](https://dnd.wizards.com/resources/systems-reference-document). To add a new rule entry, add a `.txt` file to `lib/SRD/rules/`. The filename (without extension) is the entry name used for lookups. No code changes or restarts are needed.
+
+## 📖 Custom Collections
+
+### !!
+
+Browses custom content stored in `lib/Custom/`. Collections are subdirectories; each file inside is an entry.
+
+**No argument** — lists all available collections:
+```
+!!
+```
+```
+📖 Which collection would you like?
+- speeches
+- tables
+```
+
+**One argument** — lists all entries in a collection:
+```
+!! speeches
+```
+```
+📖 Choose from:
+- Harvest Speech
+- Opening Ceremony
+- Victory Address
+```
+
+**Two arguments (quoted)** — quoted second argument is treated as a single substring; returns the entry directly if exactly one match, or offers a choice if multiple:
+```
+!! speeches "Harvest Speech"
+```
+Returns the contents of `Harvest Speech.md` (or whichever file contains that substring in its name).
+
+**Two arguments (unquoted)** — each space-separated word is an independent search term; a file matches if its name contains *any* of the words:
+```
+!! speeches The Binding Of
+```
+```
+📖 Choose from these:
+- The Artifact Device
+- The Binding Of The Dark
+```
+
+**No match** — reacts with 👎.
+
+### 📚 Adding custom collections and entries
+
+- **New collection:** create a subdirectory under `lib/Custom/` — its name is what you pass as the first argument.
+- **New entry:** add any text file (`.txt`, `.md`, etc.) to the collection subdirectory. The filename without its extension is the display name used in listings and searches.
+
+No code changes or restarts are needed.
 
 ## ⭐ Commands for moderators only
 - **!set** - Create or update a command

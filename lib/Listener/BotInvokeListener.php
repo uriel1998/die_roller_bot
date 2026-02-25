@@ -260,6 +260,9 @@ class BotInvokeListener implements IEventListener
             $response .=
                 "- **!rules** - Look up an SRD rule by name or partial name (e.g. `!rules Combat`)" .
                 "\n";
+            $response .=
+                "- **!!** - Browse custom content collections (e.g. `!! speeches` or `!! speeches \"Harvest Speech\"`)" .
+                "\n";
             foreach ($commands as $command) {
                 $response .= "- **" . $command->getCommand() . "** - ";
                 $response .= $this->highlightParameters($command->getMessage());
@@ -628,6 +631,145 @@ class BotInvokeListener implements IEventListener
             } else {
                 $event->addAnswer($result);
             }
+            return;
+        }
+
+        if ($command === "!!") {
+            $customBase = dirname(__DIR__) . "/Custom";
+            $arg = trim($message);
+
+            if ($arg === "") {
+                // No argument — list all subdirectories
+                $dirs = glob($customBase . "/*", GLOB_ONLYDIR);
+                if ($dirs === false || empty($dirs)) {
+                    $event->addReaction("👎");
+                    return;
+                }
+                $dirNames = array_map(
+                    static fn(string $d): string => "- " . basename($d),
+                    $dirs,
+                );
+                sort($dirNames);
+                $event->addAnswer(
+                    "📖 Which collection would you like?\n" .
+                        implode("\n", $dirNames),
+                );
+                return;
+            }
+
+            // Parse first argument (collection / subdirectory name)
+            if ($arg[0] === '"' || $arg[0] === "'") {
+                $quote = $arg[0];
+                $end = strpos($arg, $quote, 1);
+                if ($end !== false) {
+                    $collection = substr($arg, 1, $end - 1);
+                    $rest = trim(substr($arg, $end + 1));
+                } else {
+                    $collection = substr($arg, 1);
+                    $rest = "";
+                }
+            } else {
+                $spacePos = strpos($arg, " ");
+                if ($spacePos !== false) {
+                    $collection = substr($arg, 0, $spacePos);
+                    $rest = trim(substr($arg, $spacePos + 1));
+                } else {
+                    $collection = $arg;
+                    $rest = "";
+                }
+            }
+
+            // Validate the collection directory exists
+            $targetDir = $customBase . "/" . $collection;
+            if (!is_dir($targetDir)) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            // Collect all files in the directory (any extension)
+            $allFiles = array_values(
+                array_filter(
+                    glob($targetDir . "/*") ?: [],
+                    static fn(string $f): bool => is_file($f),
+                ),
+            );
+
+            if ($rest === "") {
+                // One argument — list all filenames in the collection
+                if (empty($allFiles)) {
+                    $event->addReaction("👎");
+                    return;
+                }
+                $names = array_map(
+                    static fn(string $f): string => "- " .
+                        pathinfo($f, PATHINFO_FILENAME),
+                    $allFiles,
+                );
+                sort($names);
+                $event->addAnswer("📖 Choose from:\n" . implode("\n", $names));
+                return;
+            }
+
+            // Parse second argument (search term — quoted or unquoted)
+            if ($rest[0] === '"' || $rest[0] === "'") {
+                $quote = $rest[0];
+                $end = strpos($rest, $quote, 1);
+                $search =
+                    $end !== false
+                        ? substr($rest, 1, $end - 1)
+                        : substr($rest, 1);
+                // Quoted: single substring match
+                $searchTerms = [$search];
+            } else {
+                // Unquoted: each space-separated word is an OR search term
+                $searchTerms = preg_split(
+                    "/\s+/",
+                    $rest,
+                    -1,
+                    PREG_SPLIT_NO_EMPTY,
+                );
+            }
+
+            // Match files against search terms (OR logic)
+            $matches = array_values(
+                array_filter($allFiles, static function (string $f) use (
+                    $searchTerms,
+                ): bool {
+                    $name = pathinfo($f, PATHINFO_FILENAME);
+                    foreach ($searchTerms as $term) {
+                        if (stripos($name, $term) !== false) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }),
+            );
+
+            if (empty($matches)) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            if (count($matches) === 1) {
+                $contents = file_get_contents($matches[0]);
+                if ($contents === false) {
+                    $event->addReaction("👎");
+                    return;
+                }
+                $event->addAnswer($contents);
+                return;
+            }
+
+            // Multiple matches — offer as a choice
+            $names = array_map(
+                static fn(string $f): string => "- " .
+                    pathinfo($f, PATHINFO_FILENAME),
+                $matches,
+            );
+            sort($names);
+            $event->addAnswer(
+                "📖 Choose from these:\n" . implode("\n", $names),
+            );
             return;
         }
 
