@@ -1,0 +1,50 @@
+
+
+
+   sphinx-quickstart on Tue Dec 24 16:38:41 2019.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Dungeons & Dragons 5th Edition System Reference Document
+========================================================
+
+
+   :maxdepth: 2
+   :caption: Contents:
+
+   introduction
+   races
+   classes
+   beyond-1st-level
+   multiclassing
+   alignment
+   languages
+   inspiration
+   backgrounds
+   equipment
+   feats
+   abilities
+   adventuring
+   combat
+   spellcasting
+   spell-lists
+   spell-descriptions
+   traps
+   diseases
+   madness
+   objects
+   poisons
+   gamemastering
+   magic-items
+   monsters
+   monster-descriptions
+   creatures
+   npcs
+
+
+Indices and tables
+==================
+
+* `genindex`
+* `modindex`
+* `search`

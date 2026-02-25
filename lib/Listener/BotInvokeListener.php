@@ -239,6 +239,9 @@ class BotInvokeListener implements IEventListener
                 "- **!remain** - Show how many cards are left in the current deck" .
                 "\n";
             $response .= "- **!fortune** - Display a random fortune" . "\n";
+            $response .=
+                "- **!spelllist** - List available spell lists, or show spells for a given class (e.g. `!spelllist Druid`)" .
+                "\n";
             foreach ($commands as $command) {
                 $response .= "- **" . $command->getCommand() . "** - ";
                 $response .= $this->highlightParameters($command->getMessage());
@@ -445,6 +448,66 @@ class BotInvokeListener implements IEventListener
 
             $fortune = $fortunes[random_int(0, count($fortunes) - 1)];
             $event->addAnswer("🔮 " . $fortune . "\n");
+            return;
+        }
+
+        if ($command === "!spelllist") {
+            $spellListDir = dirname(__DIR__) . "/SRD/spell_lists";
+            $requestedClass = trim($message);
+
+            if ($requestedClass === "") {
+                // No argument — list available spell lists
+                $files = glob($spellListDir . "/*.txt");
+                if ($files === false || count($files) === 0) {
+                    $event->addReaction("👎");
+                    return;
+                }
+
+                $names = array_map(
+                    static fn(string $f): string => "- " .
+                        pathinfo($f, PATHINFO_FILENAME),
+                    $files,
+                );
+                sort($names);
+
+                $response = "📖 Which spell list would you like?\n";
+                $response .= implode("\n", $names);
+                $event->addAnswer($response);
+                return;
+            }
+
+            // Argument provided — find a case-insensitive filename match
+            $files = glob($spellListDir . "/*.txt");
+            if ($files === false) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            $matched = null;
+            foreach ($files as $file) {
+                if (
+                    strcasecmp(
+                        pathinfo($file, PATHINFO_FILENAME),
+                        $requestedClass,
+                    ) === 0
+                ) {
+                    $matched = $file;
+                    break;
+                }
+            }
+
+            if ($matched === null || !is_readable($matched)) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            $contents = file_get_contents($matched);
+            if ($contents === false) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            $event->addAnswer($contents);
             return;
         }
 
