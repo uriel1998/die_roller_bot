@@ -254,6 +254,12 @@ class BotInvokeListener implements IEventListener
             $response .=
                 "- **!magicitems** - Look up a magic item by name or partial name (e.g. `!magicitems Bag of Holding`)" .
                 "\n";
+            $response .=
+                "- **!nimble** - Look up a Nimble rule by name or partial name (e.g. `!nimble Conditions`)" .
+                "\n";
+            $response .=
+                "- **!rules** - Look up an SRD rule by name or partial name (e.g. `!rules Combat`)" .
+                "\n";
             foreach ($commands as $command) {
                 $response .= "- **" . $command->getCommand() . "** - ";
                 $response .= $this->highlightParameters($command->getMessage());
@@ -546,6 +552,8 @@ class BotInvokeListener implements IEventListener
                 "class",
                 "classes",
                 trim($message),
+                ".txt",
+                true,
             );
             if ($result === null) {
                 $event->addReaction("👎");
@@ -578,6 +586,42 @@ class BotInvokeListener implements IEventListener
                 "magic item",
                 "magic items",
                 trim($message),
+            );
+            if ($result === null) {
+                $event->addReaction("👎");
+            } else {
+                $event->addAnswer($result);
+            }
+            return;
+        }
+
+        if ($command === "!nimble") {
+            $result = $this->lookupFromDirectory(
+                dirname(__DIR__) . "/SRD/nimble",
+                "📑",
+                "nimble rule",
+                "nimble rules",
+                trim($message),
+                ".md",
+                true,
+            );
+            if ($result === null) {
+                $event->addReaction("👎");
+            } else {
+                $event->addAnswer($result);
+            }
+            return;
+        }
+
+        if ($command === "!rules") {
+            $result = $this->lookupFromDirectory(
+                dirname(__DIR__) . "/SRD/rules",
+                "📜",
+                "rule",
+                "rules",
+                trim($message),
+                ".txt",
+                true,
             );
             if ($result === null) {
                 $event->addReaction("👎");
@@ -753,12 +797,14 @@ class BotInvokeListener implements IEventListener
     /**
      * Generic directory-based lookup used by !class, !monsters, !magicitems, etc.
      *
-     * @param string $dir       Absolute path to the directory of .txt files
-     * @param string $icon      Emoji prefix for prompt/list responses
-     * @param string $itemLabel Singular label used in the no-argument prompt (e.g. "monster")
-     * @param string $itemsLabel Plural label used in the multiple-match response (e.g. "monsters")
-     * @param string $arg       The trimmed argument the user supplied (empty string = no arg)
-     * @return string|null      The answer string, or null when a 👎 reaction should be sent instead
+     * @param string $dir          Absolute path to the directory of content files
+     * @param string $icon         Emoji prefix for prompt/list responses
+     * @param string $itemLabel    Singular label used in the no-argument prompt (e.g. "monster")
+     * @param string $itemsLabel   Plural label used in the multiple-match response (e.g. "monsters")
+     * @param string $arg          The trimmed argument the user supplied (empty string = no arg)
+     * @param string $extension    File extension to glob for, including the dot (default: ".txt")
+     * @param bool   $listAllOnEmpty  When true, return all filenames instead of a prompt when no arg is given
+     * @return string|null         The answer string, or null when a 👎 reaction should be sent instead
      */
     protected function lookupFromDirectory(
         string $dir,
@@ -766,16 +812,34 @@ class BotInvokeListener implements IEventListener
         string $itemLabel,
         string $itemsLabel,
         string $arg,
+        string $extension = ".txt",
+        bool $listAllOnEmpty = false,
     ): ?string {
         // No argument
         if ($arg === "") {
-            return $icon .
-                "Please give at least the first letter of the " .
-                $itemLabel .
-                ".";
+            if (!$listAllOnEmpty) {
+                return $icon .
+                    "Please give at least the first letter of the " .
+                    $itemLabel .
+                    ".";
+            }
+
+            $files = glob($dir . "/*" . $extension);
+            if ($files === false || empty($files)) {
+                return null;
+            }
+            $names = array_map(
+                static fn(string $f): string => pathinfo($f, PATHINFO_FILENAME),
+                $files,
+            );
+            sort($names);
+            return implode(
+                "\n",
+                array_map(static fn(string $n): string => "- " . $n, $names),
+            );
         }
 
-        $files = glob($dir . "/*.txt");
+        $files = glob($dir . "/*" . $extension);
         if ($files === false) {
             return null;
         }
@@ -788,7 +852,7 @@ class BotInvokeListener implements IEventListener
         // 1. Exact case-insensitive match
         foreach ($names as $name) {
             if (strcasecmp($name, $arg) === 0) {
-                $contents = file_get_contents($dir . "/" . $name . ".txt");
+                $contents = file_get_contents($dir . "/" . $name . $extension);
                 return $contents !== false ? $contents : null;
             }
         }
@@ -820,7 +884,9 @@ class BotInvokeListener implements IEventListener
         );
 
         if (count($matches) === 1) {
-            $contents = file_get_contents($dir . "/" . $matches[0] . ".txt");
+            $contents = file_get_contents(
+                $dir . "/" . $matches[0] . $extension,
+            );
             return $contents !== false ? $contents : null;
         }
 

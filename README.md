@@ -82,6 +82,8 @@ Send `!command` in the conversation — the bot should reply with its list of av
 - **!class** - Look up a class description by name or partial name
 - **!monsters** - Look up a monster by name or partial name
 - **!magicitems** - Look up a magic item by name or partial name
+- **!nimble** - Look up a Nimble rule by name or partial name
+- **!rules** - Look up an SRD rule by name or partial name
 
 ## 🎲 Dice Rolling
 
@@ -243,12 +245,9 @@ No code changes or restarts are needed — the bot reads the directory contents 
 
 Looks up a class description from the SRD.
 
-**No argument** — prompts for input:
+**No argument** — returns all available classes:
 ```
 !class
-```
-```
-⚔️Please give at least the first letter of the class.
 ```
 
 **Single letter** — returns all classes beginning with that letter:
@@ -363,6 +362,81 @@ Looks up a magic item description from the SRD.
 ### 📚 Adding magic items
 
 Magic item data comes from the [Systems Reference Document (SRD)](https://dnd.wizards.com/resources/systems-reference-document). To add a new magic item, add a `.txt` file to `lib/SRD/magic_items/`. The filename (without extension) is the item name used for lookups. No code changes or restarts are needed.
+
+## 📑 Nimble Rules
+
+### !nimble
+
+Looks up a rule entry from the Nimble ruleset.
+
+**No argument** — returns all available Nimble rule entries:
+```
+!nimble
+```
+
+**Single letter** — returns all Nimble rules beginning with that letter:
+```
+!nimble c
+```
+
+**Exact or unique partial match** — returns the full rule entry:
+```
+!nimble Conditions
+!nimble cond
+```
+
+**Ambiguous partial match** — lists all matching rule names:
+```
+!nimble s
+```
+```
+📑Choose from these nimble rules:
+- Spells
+```
+
+**No match** — reacts with 👎.
+
+### 📚 Adding Nimble rules
+
+To add a new Nimble rule entry, add a `.md` file to `lib/SRD/nimble/`. The filename (without extension) is the entry name used for lookups. No code changes or restarts are needed.
+
+## 📜 Rules
+
+### !rules
+
+Looks up a rule entry from the SRD.
+
+**No argument** — returns all available rule entries:
+```
+!rules
+```
+
+**Single letter** — returns all rules beginning with that letter:
+```
+!rules c
+```
+
+**Exact or unique partial match** — returns the full rule entry:
+```
+!rules Combat
+!rules comb
+```
+
+**Ambiguous partial match** — lists all matching rule names:
+```
+!rules c
+```
+```
+📜Choose from these rules:
+- Combat
+- Conditions
+```
+
+**No match** — reacts with 👎.
+
+### 📚 Adding rules
+
+Rule data comes from the [Systems Reference Document (SRD)](https://dnd.wizards.com/resources/systems-reference-document). To add a new rule entry, add a `.txt` file to `lib/SRD/rules/`. The filename (without extension) is the entry name used for lookups. No code changes or restarts are needed.
 
 ## ⭐ Commands for moderators only
 - **!set** - Create or update a command
