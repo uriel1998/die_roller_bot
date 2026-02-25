@@ -242,6 +242,9 @@ class BotInvokeListener implements IEventListener
             $response .=
                 "- **!spelllist** - List available spell lists, or show spells for a given class (e.g. `!spelllist Druid`)" .
                 "\n";
+            $response .=
+                "- **!spells** - Look up a spell by name or partial name (e.g. `!spells Fireball`)" .
+                "\n";
             foreach ($commands as $command) {
                 $response .= "- **" . $command->getCommand() . "** - ";
                 $response .= $this->highlightParameters($command->getMessage());
@@ -508,6 +511,103 @@ class BotInvokeListener implements IEventListener
             }
 
             $event->addAnswer($contents);
+            return;
+        }
+
+        if ($command === "!spells") {
+            $spellDir = dirname(__DIR__) . "/SRD/spells";
+            $arg = trim($message);
+
+            // No argument
+            if ($arg === "") {
+                $event->addAnswer(
+                    "🧙Please give at least the first letter of the spell.",
+                );
+                return;
+            }
+
+            // Build list of all spell filenames (without extension)
+            $files = glob($spellDir . "/*.txt");
+            if ($files === false) {
+                $event->addReaction("👎");
+                return;
+            }
+
+            $spellNames = array_map(
+                static fn(string $f): string => pathinfo($f, PATHINFO_FILENAME),
+                $files,
+            );
+
+            // 1. Exact case-insensitive match
+            foreach ($spellNames as $name) {
+                if (strcasecmp($name, $arg) === 0) {
+                    $contents = file_get_contents(
+                        $spellDir . "/" . $name . ".txt",
+                    );
+                    if ($contents === false) {
+                        $event->addReaction("👎");
+                        return;
+                    }
+                    $event->addAnswer($contents);
+                    return;
+                }
+            }
+
+            // 2. Single a-z character — return filenames beginning with that letter
+            if (preg_match('/^[a-z]$/i', $arg)) {
+                $filtered = array_values(
+                    array_filter(
+                        $spellNames,
+                        static fn(string $n): bool => stripos($n, $arg) === 0,
+                    ),
+                );
+                sort($filtered);
+                $response = implode(
+                    "\n",
+                    array_map(
+                        static fn(string $n): string => "- " . $n,
+                        $filtered,
+                    ),
+                );
+                $event->addAnswer($response);
+                return;
+            }
+
+            // 3. Partial case-insensitive match
+            $matches = array_filter(
+                $spellNames,
+                static fn(string $n): bool => stripos($n, $arg) !== false,
+            );
+            $matches = array_values($matches);
+
+            if (count($matches) === 1) {
+                $contents = file_get_contents(
+                    $spellDir . "/" . $matches[0] . ".txt",
+                );
+                if ($contents === false) {
+                    $event->addReaction("👎");
+                    return;
+                }
+                $event->addAnswer($contents);
+                return;
+            }
+
+            if (count($matches) > 1) {
+                sort($matches);
+                $response = "🧙Choose from these spells:\n";
+                $response .= implode(
+                    "\n",
+                    array_map(
+                        static fn(string $n): string => "- " . $n,
+                        $matches,
+                    ),
+                );
+                $event->addAnswer($response);
+                return;
+            }
+
+            // No match
+            $event->addReaction("👎");
             return;
         }
 

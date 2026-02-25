@@ -76,6 +76,9 @@ Send `!command` in the conversation — the bot should reply with its list of av
 - **!roll** - Roll dice in standard notation
 - **!tarot** - Draw a tarot card with a narrative interpretation
 - **!ltarot** - Draw a tarot card with a longer, detailed interpretation
+- **!fortune** - Display a random fortune
+- **!spelllist** - List available SRD spell lists, or show the spell list for a given class
+- **!spells** - Look up an SRD spell by name or partial name
 
 ## 🎲 Dice Rolling
 
@@ -138,6 +141,98 @@ Example response:
 ```
 The Moon reversed can indicate that you are getting the feeling that something is not right but are repressing those feelings or being untruthful with yourself about a situation...
 ```
+
+## 🔮 Fortune
+
+Displays a random fortune pulled from the fortunes file:
+
+```
+!fortune
+```
+
+Example response:
+```
+🔮 Speaking the truth in times of universal deceit is a revolutionary act. - George Orwell
+```
+
+## 📖 Spell Lists
+
+### !spelllist
+
+With no arguments, lists all available SRD spell lists by class name:
+
+```
+!spelllist
+```
+
+Response:
+```
+📖 Which spell list would you like?
+- Bard
+- Cleric
+- Druid
+- Paladin
+- Ranger
+- Sorcerer
+- Warlock
+- Wizard
+```
+
+To view the full spell list for a class, provide the class name (case-insensitive):
+
+```
+!spelllist Druid
+!spelllist druid
+!spelllist DRUID
+```
+
+All three return the contents of the Druid spell list.
+
+### !spells
+
+Looks up a spell by name from the SRD spell library.
+
+**No argument** — prompts for input:
+```
+!spells
+```
+```
+🧙Please give at least the first letter of the spell.
+```
+
+**Single letter** — returns all spells beginning with that letter:
+```
+!spells a
+```
+
+**Exact or unique partial match** — returns the full spell description:
+```
+!spells Fireball
+!spells fireb
+```
+
+**Ambiguous partial match** — lists all matching spell names:
+```
+!spells fire
+```
+```
+🧙Choose from these spells:
+- Fire Bolt
+- Fire Shield
+- Fire Storm
+- Fireball
+```
+
+**No match** — reacts with 👎.
+
+### 📚 Adding spells and spell lists
+
+Spell data comes from the [Systems Reference Document (SRD)](https://dnd.wizards.com/resources/systems-reference-document). Adding content is straightforward:
+
+- **New spell:** add a `.txt` file to `lib/SRD/spells/`. The filename (without extension) is the spell name used for lookups.
+- **New spell list:** add a `.txt` file to `lib/SRD/spell_lists/`. The filename (without extension) is the class name shown in `!spelllist`.
+
+No code changes or restarts are needed — the bot reads the directory contents at runtime.
 
 ## ⭐ Commands for moderators only
 - **!set** - Create or update a command
