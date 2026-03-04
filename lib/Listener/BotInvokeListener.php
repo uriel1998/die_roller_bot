@@ -229,6 +229,16 @@ class BotInvokeListener implements IEventListener
             }
             $response = "### 💬 Available commands" . "\n";
             $response .= "- **!command** - List all commands" . "\n";
+ 
+            $response .=
+				"- **!roll** - Roll dice in standard notation" .
+                            "\n";
+            $response .=
+				"- **!tarot** - Draw a tarot card with a narrative interpretation" .
+                "\n";
+            $response .=
+				"- **!ltarot** - Draw a tarot card with a longer, detailed interpretation" .
+                "\n";
             $response .=
                 "- **!shuffle** - Shuffle a standard 52-card playing deck for this conversation" .
                 "\n";
